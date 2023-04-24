@@ -1,0 +1,74 @@
+
+
+
+
+On /etc/mysql/mysql.conf.d/mysqld.cnf
+
+Add the following line:
+port            = 9976
+
+Change to:
+bind-address            = 127.0.0.1,<server IP>
+
+
+Add lines:
+max_connections = 4500
+
+log_bin_trust_function_creators = 1
+
+#innodb_buffer_pool_size = 20G
+
+# DigitalOcean server
+innodb_buffer_pool_size = 2G
+innodb_buffer_pool_instances = 2
+# must be excatly innodb_buffer_pool_size / innodb_buffer_pool_instances
+innodb_buffer_pool_chunk_size = 1G
+
+
+
+# tmp_table_size = 3G
+tmp_table_size = 32M
+
+# max_heap_table_size = 3G
+max_heap_table_size = 32M
+
+binlog_expire_logs_seconds=7200
+
+innodb_online_alter_log_max_size = 3G
+
+open_files_limit=20000
+table_open_cache=4096
+
+
+# DigitalOcean server
+datadir = /mnt/volume_lon1_01/cicdlab/db/mysql
+
+
+Add lines (only for small db):
+-- small db
+innodb_buffer_pool_size = 2G
+
+
+
+innodb_redo_log_capacity=1G
+innodb_log_buffer_size=64M
+
+
+
+
+add the following line to /etc/apparmor.d/tunables/alias:
+alias /var/lib/mysql/ -> /mnt/volume_lon1_01/cicdlab/db/mysql/,
+
+and restart appamor after that:
+systemctl restart apparmor
+
+
+
+
+/usr/lib/systemd/system/mysql.service
+LimitNOFILE=20000
+
+
+
+systemctl daemon-reload
+systemctl restart mysql

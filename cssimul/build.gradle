@@ -1,0 +1,50 @@
+plugins {
+	id 'java'
+}
+
+group = 'org.dissertation'
+version = '0.0.1-SNAPSHOT'
+
+
+jar {
+	manifest {
+		attributes ('Main-Class': 'org.dissertation.cssimul.CssimulApplication'
+		)
+	}
+
+	from {
+		configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+	}
+
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'io.netty:netty-all:4.1.85.Final'
+	implementation 'org.apache.commons:commons-lang3:3.12.0'
+	implementation 'org.projectlombok:lombok:1.18.24'
+	implementation 'org.slf4j:slf4j-api:2.0.4'
+	implementation 'ch.qos.logback:logback-classic:1.4.5'
+
+	implementation 'org.junit.jupiter:junit-jupiter:5.9.0'
+	implementation 'org.assertj:assertj-core:3.23.1'
+	implementation project(':iso8583')
+
+	annotationProcessor 'org.projectlombok:lombok:1.18.24'
+
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

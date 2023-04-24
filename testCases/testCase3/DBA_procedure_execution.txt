@@ -1,0 +1,313 @@
+
+
+
+-- 1. Create a new table transaction_log.transaction_token with default NULL without the UNIQUE constraint
+
+
+SELECT NOW(); ALTER TABLE transaction_log ADD COLUMN transaction_token CHAR(36) NOT NULL DEFAULT "change me", ALGORITHM=INPLACE, LOCK=NONE;  SELECT NOW();
+
++---------------------+
+| NOW()               |
++---------------------+
+| 2022-08-16 19:26:49 |
++---------------------+
+1 row in set (0.00 sec)
+
+Query OK, 0 rows affected (4 hours 53 min 42.46 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
++---------------------+
+| NOW()               |
++---------------------+
+| 2022-08-17 00:20:31 |
++---------------------+
+1 row in set (0.01 sec)
+
+
+-- 2. Create triggers on the transaction_log table to update the new column by generating a new Token for every insert
+
+
+--
+--	INSERT trigger
+--
+
+DROP TRIGGER IF EXISTS sp_generate_transaction_token_from_trigger_BEFORE_INSERT;
+
+DELIMITER //
+CREATE DEFINER = CURRENT_USER TRIGGER sp_generate_transaction_token_from_trigger_BEFORE_INSERT BEFORE INSERT ON transaction_log FOR EACH ROW
+BEGIN
+DECLARE lUpdated SMALLINT DEFAULT 0;
+
+    SET NEW.transaction_token = UUID();
+
+END//
+DELIMITER ;
+
+
+-- 3. Create a stored procedure to generate new transaction tokens for the new column
+
+
+DROP PROCEDURE IF EXISTS sp_generate_transaction_token;
+
+DELIMITER //
+CREATE PROCEDURE sp_generate_transaction_token(
+        IN pPartition INTEGER,
+        IN pTotalPartitions INTEGER
+        )
+BEGIN
+    DECLARE not_found INTEGER DEFAULT 0;
+    DECLARE error_record_lock INTEGER DEFAULT 0;
+    DECLARE currId BIGINT DEFAULT 0;
+    DECLARE updatedRecQty BIGINT DEFAULT 0;
+    DECLARE loopJustStarted INT DEFAULT 0;
+    DECLARE lUpdated SMALLINT DEFAULT 0;
+    DECLARE maxId BIGINT DEFAULT 0;
+    DECLARE idsPerPartition BIGINT DEFAULT 0;
+    DECLARE partitionLowId BIGINT DEFAULT 0;
+    DECLARE partitionHighId BIGINT DEFAULT 0;
+    DECLARE lId bigint;
+    DECLARE lTransactionToken CHAR(36);
+
+
+    DEClARE cur
+        CURSOR FOR
+            SELECT id, transaction_token
+            FROM transaction_log
+            WHERE id >= currId AND id < partitionHighId
+            LIMIT 1000;
+
+    -- Error due to record lock handler
+    DECLARE CONTINUE HANDLER FOR 1205  -- Lock wait timeout exceeded
+        SET error_record_lock = error_record_lock + 1;
+
+    -- declare NOT FOUND handler
+    DECLARE CONTINUE HANDLER
+        FOR NOT FOUND SET not_found = 1;
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        SHOW ERRORS;
+        ROLLBACK;
+    END;
+
+
+
+    SELECT COALESCE( MAX(id), 0 ) INTO maxId FROM transaction_log;
+    SET idsPerPartition = maxId / pTotalPartitions;
+
+    SET partitionLowId = idsPerPartition * pPartition;
+    SET partitionHighId = partitionLowId + idsPerPartition;
+
+    SELECT partitionLowId AS "low id", partitionHighId AS "high id";
+
+
+    SET currId = partitionLowId;
+
+    OUTER_BLOCK: LOOP
+
+        IF currId > 0 THEN
+            SET currId = currId + 1;
+        END IF;
+
+        OPEN cur;
+
+        SET loopJustStarted = 1;
+
+        DO SLEEP( 0.1 );
+
+        START TRANSACTION;
+
+        TRANSACTION_BLOCK: LOOP
+            FETCH cur INTO lId, lTransactionToken;
+
+            IF not_found = 1 THEN
+                IF loopJustStarted = 1 THEN     -- There're no more records
+                    LEAVE OUTER_BLOCK;
+                ELSE
+                    LEAVE TRANSACTION_BLOCK;
+                END IF;
+            END IF;
+
+            SET loopJustStarted = 0;
+            SET currId = lId;
+
+            SET lUpdated = 0;
+
+            IF lTransactionToken = "change me"
+            THEN
+                UPDATE transaction_log SET transaction_token = UUID() WHERE id = lId;
+                SET updatedRecQty = updatedRecQty + 1;
+            END IF;
+
+        END LOOP TRANSACTION_BLOCK;
+
+        CLOSE cur;
+
+        COMMIT;
+
+        SET not_found = 0;
+
+    END LOOP OUTER_BLOCK;
+
+    COMMIT;
+
+    SELECT updatedRecQty AS "TOTAL updated records", error_record_lock AS "Errors due to record lock";
+END//
+DELIMITER ;
+
+
+-- 4. Execute the stored procedure several times until it informs that no records have been updated
+
+-- In order to maximize database server resources usage, execute the following in parallel
+SELECT NOW(); CALL sp_generate_transaction_token( 0, 3, 132287849 ); SELECT NOW();
++---------------------+
+| NOW()               |
++---------------------+
+| 2022-08-17 08:43:13 |
++---------------------+
+1 row in set (0.00 sec)
+
++--------+----------+
+| low id | high id  |
++--------+----------+
+|      0 | 44095950 |
++--------+----------+
+1 row in set (0.19 sec)
+
++-----------------------+---------------------------+
+| TOTAL updated records | Errors due to record lock |
++-----------------------+---------------------------+
+|              43719303 |                         0 |
++-----------------------+---------------------------+
+1 row in set (3 hours 29 min 17.99 sec)
+
+Query OK, 0 rows affected (3 hours 29 min 18.00 sec)
+
++---------------------+
+| NOW()               |
++---------------------+
+| 2022-08-17 12:12:31 |
++---------------------+
+1 row in set (0.00 sec)
+
+
+SELECT NOW(); CALL sp_generate_transaction_token( 1, 3, 132287849 ); SELECT NOW();
+
++---------------------+
+| NOW()               |
++---------------------+
+| 2022-08-17 08:43:31 |
++---------------------+
+1 row in set (0.00 sec)
+
++----------+----------+
+| low id   | high id  |
++----------+----------+
+| 44095950 | 88191900 |
++----------+----------+
+1 row in set (0.00 sec)
+
++-----------------------+---------------------------+
+| TOTAL updated records | Errors due to record lock |
++-----------------------+---------------------------+
+|              43719527 |                         0 |
++-----------------------+---------------------------+
+1 row in set (3 hours 29 min 3.64 sec)
+
+Query OK, 0 rows affected (3 hours 29 min 3.64 sec)
+
++---------------------+
+| NOW()               |
++---------------------+
+| 2022-08-17 12:12:34 |
++---------------------+
+1 row in set (0.00 sec)
+
+
+SELECT NOW(); CALL sp_generate_transaction_token( 2, 3, 132287849 ); SELECT NOW();
+
++---------------------+
+| NOW()               |
++---------------------+
+| 2022-08-17 08:43:45 |
++---------------------+
+1 row in set (0.00 sec)
+
++----------+-----------+
+| low id   | high id   |
++----------+-----------+
+| 88191900 | 132287850 |
++----------+-----------+
+1 row in set (0.00 sec)
+
+
++-----------------------+---------------------------+
+| TOTAL updated records | Errors due to record lock |
++-----------------------+---------------------------+
+|              43717855 |                         0 |
++-----------------------+---------------------------+
+1 row in set (3 hours 29 min 27.25 sec)
+
++---------------------+
+| NOW()               |
++---------------------+
+| 2022-08-17 12:13:12 |
++---------------------+
+1 row in set (0.00 sec)
+
+
+
+-- 5. Create the indexes and constraints for the new field and remove the previously created default value
+
+SELECT NOW(); CREATE UNIQUE INDEX transaction_tokenIdx ON transaction_log(transaction_token); SELECT NOW();
++---------------------+
+| NOW()               |
++---------------------+
+| 2022-08-17 19:35:03 |
++---------------------+
+1 row in set (0.06 sec)
+
+Query OK, 0 rows affected (44 min 8.12 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
++---------------------+
+| NOW()               |
++---------------------+
+| 2022-08-17 20:19:11 |
++---------------------+
+1 row in set (0.00 sec)
+
+
+SELECT NOW(); ALTER TABLE transaction_log ALTER COLUMN transaction_token DROP DEFAULT, ALGORITHM=INSTANT; SELECT NOW();
+
++---------------------+
+| NOW()               |
++---------------------+
+| 2022-08-17 21:14:01 |
++---------------------+
+1 row in set (0.00 sec)
+
+Query OK, 0 rows affected (0.12 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
++---------------------+
+| NOW()               |
++---------------------+
+| 2022-08-17 21:14:01 |
++---------------------+
+1 row in set (0.00 sec)
+
+
+-- 6. Inform the development team that the new table layout is ready
+
+
+-- 7. As soon as the application is ready for the new layout, drop the triggers created on step 2
+
+DROP TRIGGER sp_generate_transaction_token_from_trigger_BEFORE_INSERT;
+Query OK, 0 rows affected (0.02 sec)
+
+
+
+
+
+

@@ -1,0 +1,96 @@
+
+VPS:
+
+Srv2:
+8 vCPU Cores
+30 GB RAM
+400 GB NVMe
+
+
+Config params:
+
+innodb_buffer_pool_size = 20G
+tmp_table_size = 3G
+max_heap_table_size = 3G
+
+
+Database optimisations:
+
+ALTER TABLE transaction_log ROW_FORMAT=COMPRESSED;
+
+
+
+--------------------------------------------------------------------------------
+
+
+SELECT COUNT(*) FROM merchant;
++----------+
+| COUNT(*) |
++----------+
+|   300000 |
++----------+
+1 row in set (0.16 sec)
+
+mysql>
+mysql> SELECT COUNT(*) FROM terminal;
++----------+
+| COUNT(*) |
++----------+
+|   900448 |
++----------+
+
+
+
+-- MasterCard transactions must be ~14%
+SELECT (SELECT count(*) FROM transaction_log WHERE CARD_SCHEME = 1) / (SELECT count(*) FROM transaction_log) * 100;
+
++-------------------------------------------------------------------------------------------------------------+
+| (SELECT count(*) FROM transaction_log WHERE CARD_SCHEME = 1) / (SELECT count(*) FROM transaction_log) * 100 |
++-------------------------------------------------------------------------------------------------------------+
+|                                                                                                     13.9823 |
++-------------------------------------------------------------------------------------------------------------+
+1 row in set (31.84 sec)
+
+
+
+-- Credit transactions must be ~20%
+SELECT (SELECT count(*) FROM transaction_log WHERE function_code = 100) / (SELECT count(*) FROM transaction_log) * 100;
+
++-----------------------------------------------------------------------------------------------------------------+
+| (SELECT count(*) FROM transaction_log WHERE function_code = 100) / (SELECT count(*) FROM transaction_log) * 100 |
++-----------------------------------------------------------------------------------------------------------------+
+|                                                                                                         20.0009 |
++-----------------------------------------------------------------------------------------------------------------+
+1 row in set (20.90 sec)
+
+
+-- Average Txn value debit:£22.82
+SELECT AVG(amount) FROM transaction_log WHERE function_code = 200;
+
++-------------+
+| AVG(amount) |
++-------------+
+|   22.823850 |
++-------------+
+1 row in set (2 min 55.24 sec)
+
+
+-- How many transactions
+SELECT count(*) FROM transaction_log;
++----------+
+| count(*) |
++----------+
+| 25899965 |
++----------+
+1 row in set (19.57 sec)
+
+
+-- Interval
+SELECT MIN(utc_capture_date_time), MAX(utc_capture_date_time) FROM transaction_log WHERE function_code = 200;
++----------------------------+----------------------------+
+| MIN(utc_capture_date_time) | MAX(utc_capture_date_time) |
++----------------------------+----------------------------+
+| 2022-07-14 00:00:00        | 2022-08-17 22:50:22        |
++----------------------------+----------------------------+
+1 row in set (2 min 33.61 sec)
+

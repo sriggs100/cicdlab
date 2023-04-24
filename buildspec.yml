@@ -1,0 +1,178 @@
+version: 0.2
+
+#run-as: codebuild-user
+
+env:
+  shell: bash
+  variables:
+#    DEPLOY_ACTION: "BASELINE_DB"
+    S3_BUCKET: cicdlab-bucket
+#  parameter-store:
+#    key: "value"
+#    key: "value"
+#  exported-variables:
+#    - DEPLOY_ACTION
+#  secrets-manager:
+#    key: secret-id:json-key:version-stage:version-id
+#  git-credential-helper: no | yes
+
+#proxy:
+#  upload-artifacts: no | yes
+#  logs: no | yes
+
+#batch:
+#  fast-fail: false | true
+  # build-list:
+  # build-matrix:
+  # build-graph:
+        
+phases:
+  install:
+    on-failure: ABORT
+    commands:
+      - echo Entered the install phase...
+#      - n 14.19.2
+#      - npm -g install typescript
+#      - npm update -g typescript
+#      - npm i -g npm
+#      - npm install aws-cdk-lib
+#      - npm install -g aws-cdk
+#      - npm install @types/node --save-dev
+#      - npm i --save-dev @types/jest
+    finally:
+      - echo Install phase finished
+#  pre_build:
+#    run-as: Linux-user-name
+#    on-failure: ABORT | CONTINUE
+#    commands:
+#      - command
+#      - command
+#    finally:
+#      - command
+#      - command
+  build:
+#    run-as: Linux-user-name
+    on-failure: ABORT
+    commands:
+#      - mvn install
+#      - cd infra && npm run build
+
+      - mkdir build
+      
+      - cd acq && gradle build && cd -
+      - cp -p acq/acqsimul/build/libs/acqsimul-*-SNAPSHOT.jar build/acqsimul-db0.jar
+      - cp -p acq/acqrestproxy/build/libs/acqrestproxy-*-SNAPSHOT.jar build/
+      - cp -p acq/acqcsproxy/build/libs/acqcsproxy-*-SNAPSHOT.jar build/
+      - cp -p acq/acqsimul/build/libs/acqsimul-*-SNAPSHOT.jar build/acqsimul-current.jar
+      
+      - sed -i 's/acqsimul_db0/acqsimul_db1/g' acq/acqsimul/build.gradle
+      - sed -i 's/acqsimul_db0/acqsimul_db1/g' acq/settings.gradle
+      - cd acq/acqsimul && gradle clean && gradle build && cd -
+      - cp -p acq/acqsimul/build/libs/acqsimul-*-SNAPSHOT.jar build/acqsimul-db1.jar
+      
+      - sed -i 's/acqsimul_db1/acqsimul_db1_devops0/g' acq/acqsimul/build.gradle
+      - sed -i 's/acqsimul_db1/acqsimul_db1_devops0/g' acq/settings.gradle
+      - cd acq/acqsimul && gradle clean && gradle build && cd -
+      - cp -p acq/acqsimul/build/libs/acqsimul-*-SNAPSHOT.jar build/acqsimul-db1-devops0.jar
+      
+      - sed -i 's/acqsimul_db1_devops0/acqsimul_db1_devops1/g' acq/acqsimul/build.gradle
+      - sed -i 's/acqsimul_db1_devops0/acqsimul_db1_devops1/g' acq/settings.gradle
+      - cd acq/acqsimul && gradle clean && gradle build && cd -
+      - cp -p acq/acqsimul/build/libs/acqsimul-*-SNAPSHOT.jar build/acqsimul-db1-devops1.jar
+      
+      - sed -i 's/acqsimul_db1_devops1/acqsimul_db2/g' acq/acqsimul/build.gradle
+      - sed -i 's/acqsimul_db1_devops1/acqsimul_db2/g' acq/settings.gradle
+      - cd acq/acqsimul && gradle clean && gradle build && cd -
+      - cp -p acq/acqsimul/build/libs/acqsimul-*-SNAPSHOT.jar build/acqsimul-db2.jar
+
+      - sed -i 's/acqsimul_db2/acqsimul_db2_devops0/g' acq/acqsimul/build.gradle
+      - sed -i 's/acqsimul_db2/acqsimul_db2_devops0/g' acq/settings.gradle
+      - cd acq/acqsimul && gradle clean && gradle build && cd -
+      - cp -p acq/acqsimul/build/libs/acqsimul-*-SNAPSHOT.jar build/acqsimul-db2-devops0.jar
+      
+      - sed -i 's/acqsimul_db2_devops0/acqsimul_db2_devops1/g' acq/acqsimul/build.gradle
+      - sed -i 's/acqsimul_db2_devops0/acqsimul_db2_devops1/g' acq/settings.gradle
+      - cd acq/acqsimul && gradle clean && gradle build && cd -
+      - cp -p acq/acqsimul/build/libs/acqsimul-*-SNAPSHOT.jar build/acqsimul-db2-devops1.jar
+      
+      - sed -i 's/acqsimul_db2_devops1/acqsimul_db2_devops2/g' acq/acqsimul/build.gradle
+      - sed -i 's/acqsimul_db2_devops1/acqsimul_db2_devops2/g' acq/settings.gradle
+      - cd acq/acqsimul && gradle clean && gradle build && cd -
+      - cp -p acq/acqsimul/build/libs/acqsimul-*-SNAPSHOT.jar build/acqsimul-db2-devops2.jar
+      
+      - sed -i 's/acqsimul_db2_devops2/acqsimul_db3/g' acq/acqsimul/build.gradle
+      - sed -i 's/acqsimul_db2_devops2/acqsimul_db3/g' acq/settings.gradle
+      - cd acq/acqsimul && gradle clean && gradle build && cd -
+      - cp -p acq/acqsimul/build/libs/acqsimul-*-SNAPSHOT.jar build/acqsimul-db3.jar
+      
+      - sed -i 's/acqsimul_db3/acqsimul_db3_devops0/g' acq/acqsimul/build.gradle
+      - sed -i 's/acqsimul_db3/acqsimul_db3_devops0/g' acq/settings.gradle
+      - cd acq/acqsimul && gradle clean && gradle build && cd -
+      - cp -p acq/acqsimul/build/libs/acqsimul-*-SNAPSHOT.jar build/acqsimul-db3-devops0.jar
+      
+      - sed -i 's/acqsimul_db3_devops0/acqsimul_db3_devops1/g' acq/acqsimul/build.gradle
+      - sed -i 's/acqsimul_db3_devops0/acqsimul_db3_devops1/g' acq/settings.gradle
+      - cd acq/acqsimul && gradle clean && gradle build && cd -
+      - cp -p acq/acqsimul/build/libs/acqsimul-*-SNAPSHOT.jar build/acqsimul-db3-devops1.jar
+      
+      - cd termsimul && gradle build && cd -
+      - cp -p termsimul/build/libs/termsimul-*-SNAPSHOT.jar build/
+     
+      - cd cssimul && gradle build && cd -
+      - cp -p cssimul/build/libs/cssimul-*-SNAPSHOT.jar build/
+
+      - ./scripts/create_artifacts.sh
+    finally:
+      - echo Build phase finished
+  post_build:
+#    run-as: Linux-user-name
+#    on-failure: ABORT | CONTINUE
+    commands:
+      - echo $CODEBUILD_RESOLVED_SOURCE_VERSION > build/${BUILD_TYPE}_Commit.id
+      - aws s3 cp build/${BUILD_TYPE}_Commit.id s3://${S3_BUCKET}/${BUILD_TYPE}_Commit.id
+      - ./scripts/inform_lab_environment.sh
+#      - command
+#    finally:
+#      - command
+#      - command
+
+#reports:
+#  arn:aws:codebuild:us-east-1:669121439246:report-group/cicdlab-report-1:
+#    files:
+#      - "**/*"
+#    base-directory: 'target/tests/reports'
+#    discard-paths: no
+#    file-format: report-format
+
+artifacts:
+#  base-directory: build
+  files:
+#    - infra/bin/infra.js
+#  name: infra-creation-script
+    - build/*
+    - build/scripts/*
+    - build/config/*
+    - Procfile
+  name: acqsimul
+#  discard-paths: yes
+
+#  exclude-paths: excluded paths
+#  enable-symlinks: no | yes
+#  s3-prefix: prefix
+#  secondary-artifacts:
+#    artifactIdentifier:
+#      files:
+#        - location
+#        - location
+#      name: secondary-artifact-name
+#      discard-paths: no | yes
+#      base-directory: location
+#    artifactIdentifier:
+#      files:
+#        - location
+#        - location
+#      discard-paths: no | yes
+#      base-directory: location
+cache:
+  paths:
+    - '/root/.m2/**/*'

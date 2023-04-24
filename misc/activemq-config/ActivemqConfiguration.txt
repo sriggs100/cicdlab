@@ -1,0 +1,12 @@
+
+On /opt/apache-activemq-5.17.2/conf/activemq.xml
+
+Add the folowing persistent property to the broker xml tag as follows to disable persistence to disk: 
+	<broker ...  persistent="false">
+		...
+	</broker>
+	
+	
+	
+	            
+

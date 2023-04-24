@@ -1,0 +1,10 @@
+rootProject.name = 'acq'
+
+include ':acqsimul_db0'
+include ':acqsimul'
+include ':acqrestproxy'
+include ':acqcsproxy'
+include ':dtos'
+
+include ':iso8583'
+project(':iso8583').projectDir = new File("../iso8583")

@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 1m
+
+scrape_configs:
+  - job_name: "prometheus"
+    scrape_interval: 1m
+    static_configs:
+    - targets: ["localhost:9090"]
+
+  - job_name: "srv1"
+    static_configs:
+    - targets: ["node-exporter:9100"]
+
+remote_write:
+  - url: "<dashboard url>"
+    basic_auth:
+      username: "<username>"
+      password: "<password>"

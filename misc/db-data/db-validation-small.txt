@@ -1,0 +1,99 @@
+
+VPS:
+
+Srv1:
+4 vCPU Cores
+8 GB RAM
+200 GB SSD
+
+
+Config params:
+
+innodb_buffer_pool_size = 2G
+
+
+
+--------------------------------------------------------------------------------
+
+
+
+SELECT COUNT(*) FROM merchant;
++----------+
+| COUNT(*) |
++----------+
+|   300000 |
++----------+
+1 row in set (0.36 sec)
+
+
+
+SELECT COUNT(*) FROM terminal;
++----------+
+| COUNT(*) |
++----------+
+|   901388 |
++----------+
+1 row in set (0.20 sec)
+
+
+-- MasterCard transactions must be ~14%
+SELECT (SELECT count(*) FROM transaction_log WHERE CARD_SCHEME = 1) / (SELECT count(*) FROM transaction_log) * 100;
++-------------------------------------------------------------------------------------------------------------+
+| (SELECT count(*) FROM transaction_log WHERE CARD_SCHEME = 1) / (SELECT count(*) FROM transaction_log) * 100 |
++-------------------------------------------------------------------------------------------------------------+
+|                                                                                                     13.9917 |
++-------------------------------------------------------------------------------------------------------------+
+1 row in set (10.78 sec)
+
+
+-- Credit transactions must be ~20%
+SELECT (SELECT count(*) FROM transaction_log WHERE function_code = 100) / (SELECT count(*) FROM transaction_log) * 100;
++-----------------------------------------------------------------------------------------------------------------+
+| (SELECT count(*) FROM transaction_log WHERE function_code = 100) / (SELECT count(*) FROM transaction_log) * 100 |
++-----------------------------------------------------------------------------------------------------------------+
+|                                                                                                         20.0106 |
++-----------------------------------------------------------------------------------------------------------------+
+1 row in set (4.87 sec)
+
+
+SELECT MIN(utc_capture_date_time), MAX(utc_capture_date_time) FROM transaction_log WHERE function_code = 200;
++----------------------------+----------------------------+
+| MIN(utc_capture_date_time) | MAX(utc_capture_date_time) |
++----------------------------+----------------------------+
+| 2022-07-14 00:00:01        | 2022-08-17 20:50:00        |
++----------------------------+----------------------------+
+1 row in set (35.09 sec)
+
+
+
+-- Average Txn value debit:£22.82
+SELECT AVG(amount) FROM transaction_log WHERE function_code = 200;
++-------------+
+| AVG(amount) |
++-------------+
+|   22.816597 |
++-------------+
+1 row in set (27.82 sec)
+
+
+
+-- Average Txn value credit:£33.52
+SELECT AVG(amount) FROM transaction_log WHERE function_code = 100;
++-------------+
+| AVG(amount) |
++-------------+
+|   33.512776 |
++-------------+
+1 row in set (21.66 sec)
+
+
+
+-- How many transactions
+SELECT count(*) FROM transaction_log;
++----------+
+| count(*) |
++----------+
+|  5249965 |
++----------+
+1 row in set (5.10 sec)
+

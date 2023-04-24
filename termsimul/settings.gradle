@@ -1,0 +1,4 @@
+rootProject.name = 'termsimul'
+
+include ':iso8583'
+project(':iso8583').projectDir = new File("../iso8583")

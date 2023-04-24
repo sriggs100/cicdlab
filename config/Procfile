@@ -1,0 +1,4 @@
+restproxy: chmod +x ./build/scripts/restproxy_proc.sh;./build/scripts/restproxy_proc.sh
+worker1: chmod +x ./build/scripts/acqsimul_proc.sh;./build/scripts/acqsimul_proc.sh 9090
+worker2: ./build/scripts/acqsimul_proc.sh 9091
+csproxy: chmod +x ./build/scripts/csproxy_proc.sh;./build/scripts/csproxy_proc.sh

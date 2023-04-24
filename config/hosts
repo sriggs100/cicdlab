@@ -1,0 +1,4 @@
+
+10.106.0.3 srv1 termsimul cssimul
+10.106.0.4 srv2 dbhost
+10.106.0.2 srv3 acqsimul
